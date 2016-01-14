@@ -1,209 +1,104 @@
-BOARD_SIZE = 9
+require_relative 'board'
+require_relative 'player'
+require_relative 'view'
 
 class Game
-  attr_accessor :board, :players, :type
+  attr_accessor :players, :type
+  attr_reader :board
 
   def initialize
-    @board_positions = (1..BOARD_SIZE).to_a.map{|n| n.to_s}
-    @board = Array.new(BOARD_SIZE, " ")
-    @players = [{name: nil, mark: nil, order: 1}, {name: "Computer", mark: nil, order: 1}]
+    @players = [Player.new, Player.new("Computer")]
+    @view = View.new
+    @board = Board.new(9)
+    @active_board = @board.active_board
     @type = nil
-    @played_moves = []
-    setup_game
-  end
-
-  def play_game
-    until winner(@board) || tie
-      @players.each do |player|
-        puts
-        if player[:name] != "Computer" && player[:name] != "Computer 1" && player[:name] != "Computer 2"
-          player_move(player)
-          print_board(@board)
-        else
-          computer_move
-          print_board(@board)
-        end
-        break if winner(@board)
-        break if tie
-      end
-    end
-    if winner(@board)
-      puts
-      puts winner(@board) + " is the winner!"
-    else
-      puts
-      puts "It's a tie."
-    end
   end
 
   def setup_game
-    get_player_name
-    puts
+    @view.clear_screen!
+    @view.get_player_name(@players[0])
     get_board_pieces
-    puts
-    display_game_options
     game_type_selection
-    puts
     unless @type == "3"
-      display_order_options
+      @view.display_order_options(@players[0])
       player_order_selection
-      puts
-      puts "Alright, #{@players[0][:name]}, you are turn number #{@players[0][:order]}"
+      @view.confirm_player_order(@players[0])
     end
-    puts
-    sleep(1.0)
-    print_board(@board_positions)
-    puts
+    sleep(2.0)
   end
 
-  def get_player_name
-    puts "Player, what is your name?"
-    if @players[0][:name] == nil
-      @players[0][:name] = gets.chomp
+  def two_unique_pieces(marks)
+    marks.length == 2 && marks.uniq.length > 1
+  end
+
+  def assign_pieces(players, marks)
+    players[0].mark = marks[0]
+    players[1].mark = marks[1]
+  end
+
+  def check_for_valid_pieces(marks, players)
+    if two_unique_pieces(marks)
+      assign_pieces(players, marks)
     else
-      @players[1][:name] = gets.chomp
+      @view.display_invalid_char_message
     end
   end
 
   def get_board_pieces
+    @view.display_pieces_prompt
     marks = []
-    puts "Which 2 characters would you like to play with (ie: X, O)?"
-    until marks.length == 2 && marks.uniq.length > 1
-      marks = gets.chomp.gsub(/[\s,]/ ,"").chars
-      if marks.length == 2 && marks.uniq.length > 1
-        @players[0][:mark] = marks[0]
-        @players[1][:mark] = marks[1]
-      else
-        puts "Please enter 2 valid characters (may not be the same)"
-      end
+    until two_unique_pieces(marks)
+      marks = @view.get_pieces
+      check_for_valid_pieces(marks, players)
     end
-  end
-
-  def display_game_options
-    puts "Please select the mode of play: "
-    puts "[1] You versus the computer"
-    puts "[2] You versus another player"
-    puts "[3] Demo computer versus computer"
+    puts
   end
 
   def game_type_selection
-    @type = gets.chomp
+    @view.display_game_options
+    @type = @view.get_user_input
     if @type == "1"
-      sleep(1.0)
-      puts
-      puts "The computer has accepted your challenge."
+      @view.confirm_player_vs_comp
     elsif @type == "2"
-      sleep(1.0)
-      puts
-      puts "Ok, you want to play against another person"
-      get_player_name
+      @view.confirm_player_vs_player(@players)
     elsif @type == "3"
-      sleep(1.0)
-      puts
-      puts "The computer will play against itself"
-      @players[0][:name] = "Computer 1"
-      @players[1][:name] = "Computer 2"
+      @view.confirm_comp_vs_comp(@players)
     else
-      puts "Please make a valid selection"
+      @view.display_invalid_selection_message
       game_type_selection
     end
+    puts
   end
 
-  def display_order_options
-    puts "#{@players[0][:name]}, do you want to go first or second?"
-    puts "[1] First"
-    puts "[2] Second"
+  def reverse_player_order
+    @players[0].order = 2
+    @players = @players.reverse
   end
 
   def player_order_selection
-    order = gets.chomp.to_i
+    order = @view.get_user_input.to_i
     until order == 1 || order == 2
-      puts "Please make a valid selection"
-      display_order_options
-      order = gets.chomp.to_i
+      @view.display_invalid_selection_message
+      @view.display_order_options(@players[0])
+      order = @view.get_user_input.to_i
     end
     if order == 2
-      @players[0][:order] = 2
-      @players = @players.reverse
+      reverse_player_order
     end
+    puts
   end
 
-  def place(piece, move)
-    return false if move < 1 || move > BOARD_SIZE
-    return false if @played_moves.include?(move)
-    @board[move - 1] = piece
-    @played_moves << move
-  end
-
-  def player_move(player)
-    valid_move = false
-    until valid_move
-      puts "#{player[:name]}, enter your move:"
-      move = gets.chomp.to_i
-      puts
-      unless move.between?(1,9)
-        puts "Enter a valid move"
-        next
-      end
-      valid_move = place(player[:mark], move)
-      puts "Invalid move" unless valid_move
-    end
-  end
-
-  def computer_move
-    computers = @players.find_all{|player| player[:name].include?("Computer")}
-    index = rand(0..8)
-    computers.each do |computer|
-      puts "#{computer[:name]} is selecting"
-      3.times do
-        print ". "
-        sleep(1.0)
-      end
-      puts
-      until @board[index] == " "
-        index = rand(0..8)
-      end
-      @board[index] = computer[:mark]
-      puts
-      puts "#{computer[:name]} selected #{index + 1}"
-      if computer[:name] == "Computer 1"
-        puts
-        print_board(@board)
-      end
-      @played_moves << index + 1
-      puts
-      break if winner(@board)
-      break if tie
-    end
-  end
-
-  def winner(board)
-    winning_combinations = [[0, 1, 2], [3, 4, 5],
-                            [6, 7, 8], [0, 3, 6],
-                            [1, 4, 7], [2, 5, 8],
-                            [0, 4, 8], [2, 4, 6]]
-    winning_combinations.each do |row|
-      if board.at(row[0]) == @players[0][:mark] &&
-        board.at(row[1]) == @players[0][:mark] &&
-        board.at(row[2]) == @players[0][:mark]
-        return @players[0][:name]
-      elsif board.at(row[0]) == @players[1][:mark] &&
-        board.at(row[1]) == @players[1][:mark] &&
-        board.at(row[2]) == @players[1][:mark]
-        return @players[1][:name]
+  def play_game
+    setup_game
+    @view.clear_screen!
+    until @board.game_finished?(@players)
+      @players.each do |player|
+        @board.print_board(@board.active_board)
+        player.select_move_type(@players, player, @view, @board)
+        break if @board.winner(@players)
+        break if @board.tie?(@players)
       end
     end
-    return false
-  end
-
-  def tie
-    !(@board.include?(" "))
-  end
-
-  def print_board(board)
-    puts " #{board[0]} | #{board[1]} | #{board[2]} \n===+===+===\n #{board[3]} | #{board[4]} | #{board[5]} \n===+===+===\n #{board[6]} | #{board[7]} | #{board[8]}"
+    @view.display_results(@board, @players)
   end
 end
-
-game = Game.new
-game.play_game
