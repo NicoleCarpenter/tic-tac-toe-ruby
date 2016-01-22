@@ -23,11 +23,12 @@ describe Player do
     player = Player.new("Jen", "X")
     board = Board.new(9)
     view = View.new
-    board.active_board = ['X', 'X', 'X', ' ', ' ', ' ', ' ', ' ', ' ']
+    board.active_board = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
     context 'invalid move' do
       move = 3
-      xit 'should prompt the user for another move' do
-        expect(player.player_move(player, board, view)).to
+      xit 'should place the piece if the move is valid' do
+        allow(view).to receive(:get_user_input).and_return("3")
+        expect(player.player_move(player, board, view)).to eq(3)
       end
     end
   end
