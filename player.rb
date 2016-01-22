@@ -21,6 +21,7 @@ class Player
       view.clear_screen!
       view.invalid_move_message(board) unless valid_move
     end
+    move
   end
 
   def identify_computer_players(players)
@@ -33,12 +34,11 @@ class Player
 
   def computer_move(players, board, view)
     computers = identify_computer_players(players)
-    move = board.first_move
     computers.each do |computer|
+      move = board.best_available(players, computer)
       view.show_computer_selecting(computer, board)
       until board.open_space?(move)
         move = board.best_available(players, computer)
-        p "move #{move}"
       end
       board.place(computer, move)
       view.display_computer_selection(computer, board, move)
