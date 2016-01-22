@@ -341,17 +341,33 @@ describe Board do
     end
   end
 
-  describe '#first_move' do
-    context 'center space is available' do
-      it 'should return the center space' do
-        board.active_board = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
-        expect(board.first_move).to eq(5)
+  describe '#find_corner_spaces' do
+    context '3 x 3 board' do
+      it 'should return an array of the corner spaces' do
+        expect(board.find_corner_spaces).to eq([1, 3, 7, 9])
       end
     end
-    context 'center space is not available' do
-      it 'should return a random space other than the center' do
-        board.active_board = [' ', ' ', ' ', ' ', 'X', ' ', ' ', ' ', ' ']
-        expect(board.first_move).not_to eq(4)
+
+    context '4 x 4 board' do
+      board = Board.new(16)
+      it 'should return an array of the corner spaces' do
+        expect(board.find_corner_spaces).to eq([1, 4, 13, 16])
+      end
+    end
+  end
+
+  describe '#corner_space_empty' do
+    context 'there are no empty corner spaces' do
+      it 'should return false' do
+        sample_board = ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X']
+        expect(board.corner_space_empty?(sample_board)).to eq(false)
+      end
+    end
+
+    context 'there is at least one empty corner space' do
+      it 'should return an array with the available spaces' do
+        sample_board = [' ', 'X', 'X', 'X', 'X', 'X', 'X', 'X', ' ']
+        expect(board.corner_space_empty?(sample_board)).to eq([1, 9])
       end
     end
   end
@@ -378,19 +394,19 @@ describe Board do
     computer = players[1]
     context 'the computer can win' do
       it 'should return the winning place' do
-        board.active_board = ['O', 'O', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
+        board.active_board = ['O', 'O', ' ', ' ', 'O', ' ', ' ', ' ', ' ']
         expect(board.best_available(players, computer)).to eq(3)
       end
     end
     context 'the opponent can win' do
       it 'should return the winning place' do
-        board.active_board = ['X', 'X', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
+        board.active_board = ['X', 'X', ' ', ' ', 'O', ' ', ' ', ' ', ' ']
         expect(board.best_available(players, computer)).to eq(3)
       end
     end
     context 'the neither the opponent nor computer can win' do
       it 'should return the winning place' do
-        board.active_board = ['O', 'O', 'X', ' ', ' ', ' ', ' ', ' ', ' ']
+        board.active_board = ['O', 'O', 'X', ' ', ' ','O', ' ', ' ', ' ']
         expect(board.best_available(players, computer)).not_to eq(3)
       end
     end
