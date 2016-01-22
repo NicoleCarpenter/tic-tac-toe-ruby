@@ -132,14 +132,26 @@ class Board
 
   def center_space_empty?
     center_space = find_center_space
-    @active_board[center_space] == " "
+    @active_board[center_space - 1] == " "
   end
 
-  def first_move
-    if center_space_empty?
-      find_center_space
+  def find_corner_spaces
+    corners = []
+    position_board = separate_rows(board_positions)
+    corners << position_board[0][0].to_i
+    corners << position_board[0][-1].to_i
+    corners << position_board[-1][0].to_i
+    corners << position_board[-1][-1].to_i
+    corners
+  end
+
+  def corner_space_empty?(board)
+    corner_spaces = find_corner_spaces
+    available = corner_spaces.find_all {|space| board[space - 1] == " "}
+    if available.length == 0
+      return false
     else
-      random_move
+      return available
     end
   end
 
@@ -160,16 +172,15 @@ class Board
     opponent = players.find{|player| player != current_computer_player}
     player_win = next_move_win(current_computer_player)
     opponent_block = next_move_win(opponent)
-    p "Player win #{player_win}"
-    p "Opponent block #{opponent_block}"
-    if player_win
-      p "WIN"
+    if center_space_empty?
+      return find_center_space
+    elsif player_win
       return player_win
     elsif opponent_block
-      p "BLOCK"
       return opponent_block
+    elsif corner_space_empty?(@active_board)
+      return corner_space_empty?(@active_board).sample
     else
-      p "RANDOM"
       random_move
     end
   end
